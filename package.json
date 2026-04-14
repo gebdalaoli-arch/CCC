@@ -8,7 +8,10 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:build": "tauri build --ci --no-sign",
+    "tauri:build:windows": "tauri build -b nsis --ci --no-sign",
+    "tauri:build:macos": "tauri build --target aarch64-apple-darwin --target x86_64-apple-darwin --ci --no-sign"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

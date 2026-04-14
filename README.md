@@ -31,6 +31,8 @@
 5. 运行前端测试：`npm run test`
 6. 运行前端构建：`npm run build`
 7. 运行 Rust 测试：`cargo test --manifest-path src-tauri/Cargo.toml`
+8. 构建 Windows 安装包：`npm run tauri:build:windows`
+9. 在 macOS 机器上构建 macOS 程序：`npm run tauri:build:macos`
 
 ## 一键脚本
 
@@ -56,12 +58,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\挣钱\反代\stop-launc
 - 已加入 history bridge，启动前会从默认环境同步缺失的会话文件、索引和历史数据库，尽量让隔离模式下也能看到原有记录
 - `install_or_repair_codex` 已有基础版，会先检测现有 `codex`，再尝试平台对应的安装命令
 - `save_and_launch` 已按终端方式构建启动命令，而不是无终端直接 spawn `codex`
+- 已配置正式打包入口：Windows 可生成 NSIS 安装包，macOS 可在 mac 机器上生成应用包
 
 ## 已知限制
 
 - Windows 的最佳体验仍应优先走 WSL2；当前原型先实现原生兼容链路和基础安装逻辑
 - 第三方服务若不兼容 `Responses API`，可能仍无法启动
 - 第一版还没有把 API Key 接入系统安全存储，当前写入的是隔离 profile 中的最小 `auth.json`
+- 当前这台 Windows 开发机只能直接产出 Windows 成品，macOS 成品需要在 macOS runner 或真实 Mac 上构建
+
+## 构建产物
+
+- Windows 裸可执行文件：
+  [codex-launcher-tauri.exe](/D:/挣钱/反代/src-tauri/target/release/codex-launcher-tauri.exe)
+- Windows 安装包：
+  [Codex Launcher_0.1.0_x64-setup.exe](/D:/挣钱/反代/src-tauri/target/release/bundle/nsis/Codex%20Launcher_0.1.0_x64-setup.exe)
+
+## 跨平台自动出包
+
+项目已提供 GitHub Actions 工作流：
+- Windows runner 生成 NSIS 安装包
+- macOS runner 生成 macOS 应用产物
+
+工作流文件在：
+[build-tauri.yml](/D:/挣钱/反代/.github/workflows/build-tauri.yml)
 
 ## 日志位置
 

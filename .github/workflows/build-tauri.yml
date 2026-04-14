@@ -1,0 +1,59 @@
+name: build-tauri
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/codex-launcher-bootstrap
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: -b nsis --ci --no-sign
+            artifact_name: codex-launcher-windows
+            artifact_path: src-tauri/target/release/bundle/nsis/*
+          - platform: macos-latest
+            args: --target universal-apple-darwin --ci --no-sign
+            artifact_name: codex-launcher-macos
+            artifact_path: src-tauri/target/universal-apple-darwin/release/bundle/**/*
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install macOS Rust targets
+        if: matrix.platform == 'macos-latest'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri app
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
