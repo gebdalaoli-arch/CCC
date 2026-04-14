@@ -12,6 +12,8 @@ const FALLBACK_ENV_RESULT: EnvironmentCheckResult = {
   platform: "other",
   codexInstalled: false,
   codexVersion: null,
+  desktopAppInstalled: false,
+  desktopAppPath: null,
   wslCheckCommand: null,
   wslAvailable: false,
   macosTerminalCommandExample: null,
@@ -19,7 +21,7 @@ const FALLBACK_ENV_RESULT: EnvironmentCheckResult = {
   summary: "当前为浏览器预览模式，环境检测占位结果已就绪。",
   details: [
     "Tauri invoke 未接入，使用前端占位逻辑。",
-    "后续将对接 detect_environment 与真实安装/启动命令。"
+    "默认会优先尝试官方 Codex Desktop，不存在时才回退到 CLI。"
   ]
 };
 
@@ -27,6 +29,8 @@ const EMPTY_ENV_RESULT: EnvironmentCheckResult = {
   platform: "other",
   codexInstalled: false,
   codexVersion: null,
+  desktopAppInstalled: false,
+  desktopAppPath: null,
   wslCheckCommand: null,
   wslAvailable: false,
   macosTerminalCommandExample: null,
@@ -79,6 +83,10 @@ export function useCodexLauncher() {
           success: true,
           codexInstalled: false,
           codexVersion: null,
+          desktopAppInstalled: false,
+          desktopAppPath: null,
+          installPageUrl: "https://openai.com/codex/get-started/",
+          openedDownloadPage: false,
           message: "浏览器模式：安装/修复占位成功。"
         }
       );
@@ -100,6 +108,7 @@ export function useCodexLauncher() {
             profileName: config.profileName,
             openaiApiKey: config.apiKey,
             openaiBaseUrl: config.baseUrl,
+            launchMode: config.launchMode,
             launchNow: true,
             extraArgs: []
           }
@@ -107,6 +116,8 @@ export function useCodexLauncher() {
         {
           success: true,
           started: false,
+          resolvedLaunchMode: config.launchMode,
+          launchTarget: config.launchMode === "cli_only" ? "cli" : "desktop",
           command: ["codex"],
           env: {},
           configPath: "browser-preview/config.toml",

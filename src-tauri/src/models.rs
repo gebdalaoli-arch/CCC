@@ -10,6 +10,15 @@ pub enum PlatformKind {
     Other,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum LaunchMode {
+    #[default]
+    DesktopPreferred,
+    DesktopOnly,
+    CliOnly,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LauncherSettings {
@@ -29,6 +38,8 @@ pub struct EnvironmentReport {
     pub platform: PlatformKind,
     pub codex_installed: bool,
     pub codex_version: Option<String>,
+    pub desktop_app_installed: bool,
+    pub desktop_app_path: Option<String>,
     pub wsl_check_command: Option<Vec<String>>,
     pub wsl_available: bool,
     pub macos_terminal_command_example: Option<Vec<String>>,
@@ -42,6 +53,8 @@ pub struct LaunchRequest {
     pub openai_api_key: String,
     pub openai_base_url: Option<String>,
     #[serde(default)]
+    pub launch_mode: LaunchMode,
+    #[serde(default)]
     pub extra_args: Vec<String>,
     #[serde(default)]
     pub launch_now: bool,
@@ -52,6 +65,8 @@ pub struct LaunchRequest {
 pub struct LaunchResponse {
     pub success: bool,
     pub started: bool,
+    pub resolved_launch_mode: String,
+    pub launch_target: String,
     pub command: Vec<String>,
     pub env: BTreeMap<String, String>,
     pub config_path: String,
@@ -65,6 +80,10 @@ pub struct InstallOrRepairResponse {
     pub success: bool,
     pub codex_installed: bool,
     pub codex_version: Option<String>,
+    pub desktop_app_installed: bool,
+    pub desktop_app_path: Option<String>,
+    pub install_page_url: Option<String>,
+    pub opened_download_page: bool,
     pub message: String,
 }
 

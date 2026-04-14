@@ -5,6 +5,9 @@ describe("Codex Launcher shell", () => {
   it("renders the launcher title", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: "Codex Launcher" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "启动模式" })
+    ).toHaveValue("desktop_preferred");
   });
 
   it("disables save-and-launch without Base URL/API Key and shows compatibility note", () => {
@@ -17,6 +20,9 @@ describe("Codex Launcher shell", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(/归一化 OpenAI\/openai provider 标签/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/默认优先启动官方 Codex Desktop/i)
     ).toBeInTheDocument();
   });
 });

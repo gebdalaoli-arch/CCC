@@ -31,16 +31,35 @@ pub fn probe_codex_version() -> LauncherResult<Option<String>> {
 }
 
 pub fn install_or_repair_codex() -> LauncherResult<InstallOrRepairResponse> {
+    let desktop_app = platform::probe_desktop_app()?;
+    if desktop_app.installed {
+        return Ok(InstallOrRepairResponse {
+            success: true,
+            codex_installed: probe_codex_version()?.is_some(),
+            codex_version: probe_codex_version()?,
+            desktop_app_installed: true,
+            desktop_app_path: desktop_app.app_path.map(|path| path.to_string_lossy().to_string()),
+            install_page_url: Some(platform::desktop_install_url().to_string()),
+            opened_download_page: false,
+            message: "Detected existing Codex desktop app.".to_string(),
+        });
+    }
+
     let version = probe_codex_version()?;
     if let Some(version) = version {
         return Ok(InstallOrRepairResponse {
             success: true,
             codex_installed: true,
             codex_version: Some(version),
-            message: "Detected existing codex installation.".to_string(),
+            desktop_app_installed: false,
+            desktop_app_path: None,
+            install_page_url: Some(platform::desktop_install_url().to_string()),
+            opened_download_page: false,
+            message: "Detected existing codex CLI installation.".to_string(),
         });
     }
 
+    let opened_download_page = platform::open_desktop_install_page().is_ok();
     let (success, message, installed_version) = match platform::detect_platform() {
         PlatformKind::Windows if platform::is_wsl_available() => {
             run_install_command(
@@ -59,7 +78,15 @@ pub fn install_or_repair_codex() -> LauncherResult<InstallOrRepairResponse> {
         success,
         codex_installed: installed_version.is_some(),
         codex_version: installed_version,
-        message,
+        desktop_app_installed: false,
+        desktop_app_path: None,
+        install_page_url: Some(platform::desktop_install_url().to_string()),
+        opened_download_page,
+        message: if opened_download_page {
+            format!("{message} Official Codex desktop download page was opened.")
+        } else {
+            format!("{message} Official Codex desktop download page is available at {}.", platform::desktop_install_url())
+        },
     })
 }
 

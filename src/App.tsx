@@ -8,7 +8,8 @@ const INITIAL_CONFIG: LauncherConfig = {
   baseUrl: "",
   apiKey: "",
   profileName: "codex-isolated-profile",
-  compatibilityMode: true
+  compatibilityMode: true,
+  launchMode: "desktop_preferred"
 };
 
 function App() {
@@ -30,7 +31,7 @@ function App() {
     <main className="app-shell">
       <header>
         <h1>Codex Launcher</h1>
-        <p>第三方 API 兼容启动器，默认使用隔离 profile 与 auth scrub。</p>
+        <p>第三方 API 兼容启动器，默认优先使用官方桌面版并保留 CLI 回退。</p>
       </header>
 
       <section className="panel">
@@ -64,6 +65,22 @@ function App() {
             setConfig((prev) => ({ ...prev, profileName: event.target.value }))
           }
         />
+
+        <label htmlFor="launch-mode">启动模式</label>
+        <select
+          id="launch-mode"
+          value={config.launchMode}
+          onChange={(event) =>
+            setConfig((prev) => ({
+              ...prev,
+              launchMode: event.target.value as LauncherConfig["launchMode"]
+            }))
+          }
+        >
+          <option value="desktop_preferred">桌面版优先，CLI 回退</option>
+          <option value="desktop_only">仅桌面版</option>
+          <option value="cli_only">仅 CLI</option>
+        </select>
       </section>
 
       <CompatibilityNote />

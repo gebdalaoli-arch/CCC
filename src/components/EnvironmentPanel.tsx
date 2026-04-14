@@ -18,6 +18,10 @@ export function EnvironmentPanel({ environment }: EnvironmentPanelProps) {
         Codex：<strong>{environment.codexInstalled ? "已检测到" : "未检测到"}</strong>
         {environment.codexVersion ? ` (${environment.codexVersion})` : ""}
       </p>
+      <p>
+        桌面版：<strong>{environment.desktopAppInstalled ? "已检测到" : "未检测到"}</strong>
+        {environment.desktopAppPath ? ` (${environment.desktopAppPath})` : ""}
+      </p>
       {environment.platform === "windows" ? (
         <p>
           WSL：<strong>{environment.wslAvailable ? "可用" : "不可用"}</strong>

@@ -43,6 +43,16 @@ input {
   font: inherit;
 }
 
+select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+  font: inherit;
+  background: #ffffff;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;

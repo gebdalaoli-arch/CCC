@@ -2,12 +2,12 @@
 
 ## 项目目的
 
-这是一个通用型 `Codex Launcher` 原型，目标是把“填写第三方 `OpenAI-compatible` 的 `Base URL + API Key` 并启动 Codex”做成普通用户可用的桌面程序。应用使用 `Tauri 2 + Rust + React`，负责环境检测、配置生成、兼容修复和 CLI 启动，不依赖用户手工改配置文件。
+这是一个通用型 `Codex Launcher` 原型，目标是把“填写第三方 `OpenAI-compatible` 的 `Base URL + API Key` 并启动 Codex”做成普通用户可用的桌面程序。应用使用 `Tauri 2 + Rust + React`，负责环境检测、配置生成、兼容修复并启动 Codex。当前默认优先使用官方 `Codex Desktop`，不存在时再回退到 `CLI`。
 
 ## 当前支持范围
 
-- Windows：优先按兼容模式运行，准备隔离 `CODEX_HOME`、最小 `auth.json`、清理订阅 token 残留，并提供基础安装/修复入口。
-- macOS：同样走兼容模式，按本机终端启动 `Codex CLI`。
+- Windows：默认 `Desktop 优先，CLI 回退`，准备隔离 `CODEX_HOME`、最小 `auth.json`、清理订阅 token 残留，并提供基础安装/修复入口。
+- macOS：同样默认 `Desktop 优先，CLI 回退`。
 - 第三方接口：第一版仅支持 `OpenAI-compatible` 且兼容 `Responses API` 的服务。
 
 ## 为什么必须做隔离 profile 和 auth scrub
@@ -56,8 +56,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\挣钱\反代\stop-launc
 - 已有 Rust 后端骨架，包含 config 生成、auth scrub、ASCII profile 路径、环境检测、安装探测、启动命令构建
 - 已加入 provider repair，启动前会尽量把历史 `OpenAI` / `openai` 记录归一成同一标签，减少订阅/API 切换后的记录分裂
 - 已加入 history bridge，启动前会从默认环境同步缺失的会话文件、索引和历史数据库，尽量让隔离模式下也能看到原有记录
-- `install_or_repair_codex` 已有基础版，会先检测现有 `codex`，再尝试平台对应的安装命令
-- `save_and_launch` 已按终端方式构建启动命令，而不是无终端直接 spawn `codex`
+- 已加入双模式启动：`Desktop 优先 / 仅桌面版 / 仅 CLI`
+- `install_or_repair_codex` 现会先检测官方桌面版；缺失时优先打开官方安装页面，再回退到 CLI 安装链路
+- `save_and_launch` 默认优先启动官方桌面版，桌面版不存在时回退到 CLI
 - 已配置正式打包入口：Windows 可生成 NSIS 安装包，macOS 可在 mac 机器上生成应用包
 
 ## 已知限制
