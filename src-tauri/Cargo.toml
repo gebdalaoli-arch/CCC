@@ -1,0 +1,21 @@
+[package]
+name = "codex-launcher-tauri"
+version = "0.1.0"
+edition = "2021"
+description = "Codex Launcher backend for Tauri 2"
+
+[lib]
+name = "codex_launcher_backend"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.2", features = [] }
+
+[dependencies]
+regex = "1.11.1"
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
+tauri = { version = "2.3.1", features = [] }
+thiserror = "2.0.11"
+toml = "0.8.20"
