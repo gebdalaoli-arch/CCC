@@ -127,6 +127,7 @@ pub fn save_and_launch(request: LaunchRequest) -> LauncherResult<LaunchResponse>
 
     settings::write_codex_config(&paths.config_path, request.openai_base_url.as_deref())?;
     auth::write_minimal_auth(&paths.auth_path, None, Some(&request.openai_api_key))?;
+    let bridge_report = repair::bridge_history_from_default_sources(&paths.codex_home)?;
     let repair_report = repair::normalize_openai_provider_labels(&paths.codex_home)?;
 
     let started = if request.launch_now {
@@ -145,13 +146,23 @@ pub fn save_and_launch(request: LaunchRequest) -> LauncherResult<LaunchResponse>
         auth_path: paths.auth_path.to_string_lossy().to_string(),
         message: if started {
             format!(
-                "Codex process launched. Provider repair updated {} session files and {} sqlite rows.",
-                repair_report.session_files_changed, repair_report.sqlite_rows_changed
+                "Codex process launched. History bridge scanned {} sources, copied {} session files, added {} index entries, copied {} sqlite rows; provider repair updated {} session files and {} sqlite rows.",
+                bridge_report.sources_scanned,
+                bridge_report.session_files_copied,
+                bridge_report.session_index_entries_added,
+                bridge_report.sqlite_rows_copied,
+                repair_report.session_files_changed,
+                repair_report.sqlite_rows_changed
             )
         } else {
             format!(
-                "Launch plan prepared. Provider repair updated {} session files and {} sqlite rows.",
-                repair_report.session_files_changed, repair_report.sqlite_rows_changed
+                "Launch plan prepared. History bridge scanned {} sources, copied {} session files, added {} index entries, copied {} sqlite rows; provider repair updated {} session files and {} sqlite rows.",
+                bridge_report.sources_scanned,
+                bridge_report.session_files_copied,
+                bridge_report.session_index_entries_added,
+                bridge_report.sqlite_rows_copied,
+                repair_report.session_files_changed,
+                repair_report.sqlite_rows_changed
             )
         },
     })

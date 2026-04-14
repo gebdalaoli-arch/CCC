@@ -19,6 +19,7 @@
 - 每次启动都重写最小 `auth.json`
 - 启动前移除 `tokens` 残留
 - 启动前归一化 `OpenAI` / `openai` provider 标签，尽量避免历史对话被拆成两套
+- 启动前会把默认环境里的 `sessions/`、`session_index.jsonl` 和可用的 `state_5.sqlite` 历史桥接到隔离环境
 - 通过 ASCII 路径规避中文用户名带来的路径兼容问题
 
 ## 开发运行
@@ -52,6 +53,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\挣钱\反代\stop-launc
 - 已有 React 前端壳，包含 `Base URL`、`API Key`、`Profile Name` 输入和兼容模式提示
 - 已有 Rust 后端骨架，包含 config 生成、auth scrub、ASCII profile 路径、环境检测、安装探测、启动命令构建
 - 已加入 provider repair，启动前会尽量把历史 `OpenAI` / `openai` 记录归一成同一标签，减少订阅/API 切换后的记录分裂
+- 已加入 history bridge，启动前会从默认环境同步缺失的会话文件、索引和历史数据库，尽量让隔离模式下也能看到原有记录
 - `install_or_repair_codex` 已有基础版，会先检测现有 `codex`，再尝试平台对应的安装命令
 - `save_and_launch` 已按终端方式构建启动命令，而不是无终端直接 spawn `codex`
 
