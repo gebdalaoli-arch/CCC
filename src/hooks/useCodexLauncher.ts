@@ -14,6 +14,8 @@ const FALLBACK_ENV_RESULT: EnvironmentCheckResult = {
   codexVersion: null,
   desktopAppInstalled: false,
   desktopAppPath: null,
+  offlineCliBundled: true,
+  offlineCliPath: "browser-preview/offline-runtime",
   wslCheckCommand: null,
   wslAvailable: false,
   macosTerminalCommandExample: null,
@@ -31,6 +33,8 @@ const EMPTY_ENV_RESULT: EnvironmentCheckResult = {
   codexVersion: null,
   desktopAppInstalled: false,
   desktopAppPath: null,
+  offlineCliBundled: false,
+  offlineCliPath: null,
   wslCheckCommand: null,
   wslAvailable: false,
   macosTerminalCommandExample: null,
@@ -85,9 +89,11 @@ export function useCodexLauncher() {
           codexVersion: null,
           desktopAppInstalled: false,
           desktopAppPath: null,
+          offlineCliBundled: true,
+          offlineCliPath: "browser-preview/offline-runtime",
           installPageUrl: "https://openai.com/codex/get-started/",
           openedDownloadPage: false,
-          message: "浏览器模式：安装/修复占位成功。"
+          message: "浏览器模式：内置离线 CLI 可用，不依赖商店。"
         }
       );
       setLastMessage(result.message);

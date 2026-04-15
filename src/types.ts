@@ -17,6 +17,8 @@ export interface EnvironmentCheckResult {
   codexVersion?: string | null;
   desktopAppInstalled: boolean;
   desktopAppPath?: string | null;
+  offlineCliBundled: boolean;
+  offlineCliPath?: string | null;
   wslCheckCommand?: string[] | null;
   wslAvailable: boolean;
   macosTerminalCommandExample?: string[] | null;
@@ -28,6 +30,8 @@ export interface InstallRepairResult {
   codexVersion?: string | null;
   desktopAppInstalled: boolean;
   desktopAppPath?: string | null;
+  offlineCliBundled: boolean;
+  offlineCliPath?: string | null;
   installPageUrl?: string | null;
   openedDownloadPage: boolean;
   message: string;

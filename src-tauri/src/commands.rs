@@ -5,18 +5,18 @@ use crate::{
 };
 
 #[tauri::command]
-pub fn detect_environment() -> Result<EnvironmentReport, String> {
-    platform::detect_environment().map_err(|err| err.to_string())
+pub fn detect_environment(app: tauri::AppHandle) -> Result<EnvironmentReport, String> {
+    platform::detect_environment(Some(&app)).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-pub fn install_or_repair_codex() -> Result<InstallOrRepairResponse, String> {
-    installer::install_or_repair_codex().map_err(|err| err.to_string())
+pub fn install_or_repair_codex(app: tauri::AppHandle) -> Result<InstallOrRepairResponse, String> {
+    installer::install_or_repair_codex(Some(&app)).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-pub fn save_and_launch(request: LaunchRequest) -> Result<LaunchResponse, String> {
-    launcher::save_and_launch(request).map_err(|err| err.to_string())
+pub fn save_and_launch(app: tauri::AppHandle, request: LaunchRequest) -> Result<LaunchResponse, String> {
+    launcher::save_and_launch(Some(&app), request).map_err(|err| err.to_string())
 }
 
 #[tauri::command]

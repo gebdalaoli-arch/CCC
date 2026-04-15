@@ -5,7 +5,7 @@ use regex::Regex;
 use crate::{
     error::LauncherResult,
     models::{InstallOrRepairResponse, PlatformKind},
-    platform,
+    offline, platform,
 };
 
 pub fn parse_codex_version(output: &str) -> Option<String> {
@@ -30,15 +30,19 @@ pub fn probe_codex_version() -> LauncherResult<Option<String>> {
     }
 }
 
-pub fn install_or_repair_codex() -> LauncherResult<InstallOrRepairResponse> {
+pub fn install_or_repair_codex(app: Option<&tauri::AppHandle>) -> LauncherResult<InstallOrRepairResponse> {
     let desktop_app = platform::probe_desktop_app()?;
+    let offline_cli = offline::resolve_offline_cli(app)?;
     if desktop_app.installed {
+        let version = probe_codex_version()?;
         return Ok(InstallOrRepairResponse {
             success: true,
-            codex_installed: probe_codex_version()?.is_some(),
-            codex_version: probe_codex_version()?,
+            codex_installed: version.is_some(),
+            codex_version: version,
             desktop_app_installed: true,
             desktop_app_path: desktop_app.app_path.map(|path| path.to_string_lossy().to_string()),
+            offline_cli_bundled: offline_cli.available,
+            offline_cli_path: offline_cli.runtime_dir.map(|path| path.to_string_lossy().to_string()),
             install_page_url: Some(platform::desktop_install_url().to_string()),
             opened_download_page: false,
             message: "Detected existing Codex desktop app.".to_string(),
@@ -53,13 +57,30 @@ pub fn install_or_repair_codex() -> LauncherResult<InstallOrRepairResponse> {
             codex_version: Some(version),
             desktop_app_installed: false,
             desktop_app_path: None,
+            offline_cli_bundled: offline_cli.available,
+            offline_cli_path: offline_cli.runtime_dir.map(|path| path.to_string_lossy().to_string()),
             install_page_url: Some(platform::desktop_install_url().to_string()),
             opened_download_page: false,
             message: "Detected existing codex CLI installation.".to_string(),
         });
     }
 
-    let opened_download_page = platform::open_desktop_install_page().is_ok();
+    if offline_cli.available {
+        return Ok(InstallOrRepairResponse {
+            success: true,
+            codex_installed: false,
+            codex_version: None,
+            desktop_app_installed: false,
+            desktop_app_path: None,
+            offline_cli_bundled: true,
+            offline_cli_path: offline_cli.runtime_dir.map(|path| path.to_string_lossy().to_string()),
+            install_page_url: Some(platform::desktop_install_url().to_string()),
+            opened_download_page: false,
+            message: "Bundled offline CLI runtime is available. Windows Store is not required.".to_string(),
+        });
+    }
+
+    let opened_download_page = false;
     let (success, message, installed_version) = match platform::detect_platform() {
         PlatformKind::Windows if platform::is_wsl_available() => {
             run_install_command(
@@ -80,13 +101,11 @@ pub fn install_or_repair_codex() -> LauncherResult<InstallOrRepairResponse> {
         codex_version: installed_version,
         desktop_app_installed: false,
         desktop_app_path: None,
+        offline_cli_bundled: false,
+        offline_cli_path: None,
         install_page_url: Some(platform::desktop_install_url().to_string()),
         opened_download_page,
-        message: if opened_download_page {
-            format!("{message} Official Codex desktop download page was opened.")
-        } else {
-            format!("{message} Official Codex desktop download page is available at {}.", platform::desktop_install_url())
-        },
+        message: format!("{message} No bundled offline CLI was found, so this machine may still need network access."),
     })
 }
 

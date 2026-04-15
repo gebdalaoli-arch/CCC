@@ -22,6 +22,10 @@ export function EnvironmentPanel({ environment }: EnvironmentPanelProps) {
         桌面版：<strong>{environment.desktopAppInstalled ? "已检测到" : "未检测到"}</strong>
         {environment.desktopAppPath ? ` (${environment.desktopAppPath})` : ""}
       </p>
+      <p>
+        离线 CLI：<strong>{environment.offlineCliBundled ? "已内置" : "未内置"}</strong>
+        {environment.offlineCliPath ? ` (${environment.offlineCliPath})` : ""}
+      </p>
       {environment.platform === "windows" ? (
         <p>
           WSL：<strong>{environment.wslAvailable ? "可用" : "不可用"}</strong>

@@ -24,5 +24,6 @@ describe("Codex Launcher shell", () => {
     expect(
       screen.getByText(/默认优先启动官方 Codex Desktop/i)
     ).toBeInTheDocument();
+    expect(screen.getAllByText(/内置离线 CLI/i).length).toBeGreaterThan(0);
   });
 });

@@ -31,7 +31,7 @@ function App() {
     <main className="app-shell">
       <header>
         <h1>Codex Launcher</h1>
-        <p>第三方 API 兼容启动器，默认优先使用官方桌面版并保留 CLI 回退。</p>
+        <p>第三方 API 兼容启动器，默认优先使用官方桌面版，并内置离线 CLI 兜底。</p>
       </header>
 
       <section className="panel">
@@ -77,7 +77,7 @@ function App() {
             }))
           }
         >
-          <option value="desktop_preferred">桌面版优先，CLI 回退</option>
+          <option value="desktop_preferred">桌面版优先，离线 CLI 回退</option>
           <option value="desktop_only">仅桌面版</option>
           <option value="cli_only">仅 CLI</option>
         </select>

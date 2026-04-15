@@ -4,10 +4,13 @@ use crate::{
     auth,
     error::{LauncherError, LauncherResult},
     models::{LaunchMode, LaunchRequest, LaunchResponse, PlatformKind},
-    platform, profile, repair, settings,
+    offline, platform, profile, repair, settings,
 };
 
-pub fn build_launch_plan(request: &LaunchRequest) -> LauncherResult<(Vec<String>, BTreeMap<String, String>, profile::ProfilePaths, String, String)> {
+pub fn build_launch_plan(
+    app: Option<&tauri::AppHandle>,
+    request: &LaunchRequest,
+) -> LauncherResult<(Vec<String>, BTreeMap<String, String>, profile::ProfilePaths, String, String)> {
     let paths = profile::resolve_profile_paths(request.codex_home.as_deref(), request.profile_name.as_deref());
     profile::ensure_profile_dirs(&paths)?;
 
@@ -28,8 +31,14 @@ pub fn build_launch_plan(request: &LaunchRequest) -> LauncherResult<(Vec<String>
     }
 
     let desktop_app = platform::probe_desktop_app()?;
-    let (command, resolved_launch_mode, launch_target) =
-        resolve_launch_command(request, &env, &paths, desktop_app.app_path.as_deref())?;
+    let offline_cli = offline::resolve_offline_cli(app)?;
+    let (command, resolved_launch_mode, launch_target) = resolve_launch_command(
+        request,
+        &env,
+        &paths,
+        desktop_app.app_path.as_deref(),
+        &offline_cli,
+    )?;
 
     Ok((command, env, paths, resolved_launch_mode, launch_target))
 }
@@ -39,12 +48,16 @@ fn resolve_launch_command(
     env: &BTreeMap<String, String>,
     paths: &profile::ProfilePaths,
     desktop_app_path: Option<&std::path::Path>,
+    offline_cli: &offline::OfflineCliInfo,
 ) -> LauncherResult<(Vec<String>, String, String)> {
     match request.launch_mode {
         LaunchMode::DesktopPreferred => {
             if let Some(path) = desktop_app_path {
                 let command = build_desktop_launch_command(path);
                 Ok((command, "desktop_preferred".to_string(), "desktop".to_string()))
+            } else if offline_cli.available {
+                let command = build_offline_cli_launch_command(env, paths, &request.extra_args, offline_cli)?;
+                Ok((command, "desktop_preferred".to_string(), "bundled_cli".to_string()))
             } else {
                 let command = build_cli_launch_command(env, paths, &request.extra_args)?;
                 Ok((command, "desktop_preferred".to_string(), "cli_fallback".to_string()))
@@ -60,8 +73,13 @@ fn resolve_launch_command(
             Ok((command, "desktop_only".to_string(), "desktop".to_string()))
         }
         LaunchMode::CliOnly => {
-            let command = build_cli_launch_command(env, paths, &request.extra_args)?;
-            Ok((command, "cli_only".to_string(), "cli".to_string()))
+            if offline_cli.available {
+                let command = build_offline_cli_launch_command(env, paths, &request.extra_args, offline_cli)?;
+                Ok((command, "cli_only".to_string(), "bundled_cli".to_string()))
+            } else {
+                let command = build_cli_launch_command(env, paths, &request.extra_args)?;
+                Ok((command, "cli_only".to_string(), "cli".to_string()))
+            }
         }
     }
 }
@@ -76,19 +94,39 @@ fn build_cli_launch_command(
         paths.config_path.to_string_lossy().to_string(),
     ];
     codex_args.extend(extra_args.to_vec());
-    build_terminal_launch_command(env, &codex_args)
+    build_program_launch_command(env, "codex", &codex_args)
+}
+
+fn build_offline_cli_launch_command(
+    env: &BTreeMap<String, String>,
+    paths: &profile::ProfilePaths,
+    extra_args: &[String],
+    offline_cli: &offline::OfflineCliInfo,
+) -> LauncherResult<Vec<String>> {
+    let node_path = offline_cli
+        .node_path
+        .as_ref()
+        .ok_or_else(|| LauncherError::CommandFailed("bundled node runtime not found".to_string()))?;
+    let entry_script = offline_cli
+        .entry_script
+        .as_ref()
+        .ok_or_else(|| LauncherError::CommandFailed("bundled codex entry script not found".to_string()))?;
+
+    let mut args = vec![entry_script.to_string_lossy().to_string()];
+    args.extend(offline::build_offline_cli_args(paths, extra_args));
+    build_program_launch_command(env, &node_path.to_string_lossy(), &args)
 }
 
 fn build_desktop_launch_command(desktop_app_path: &std::path::Path) -> Vec<String> {
     vec![desktop_app_path.to_string_lossy().to_string()]
 }
 
-fn build_terminal_launch_command(
+fn build_program_launch_command(
     env: &BTreeMap<String, String>,
-    codex_args: &[String],
+    program: &str,
+    args: &[String],
 ) -> LauncherResult<Vec<String>> {
-    let codex_command = build_codex_shell_command(env, codex_args);
-
+    let command_line = build_shell_command(env, program, args);
     let command = match platform::detect_platform() {
         PlatformKind::Windows => vec![
             "cmd.exe".to_string(),
@@ -98,49 +136,45 @@ fn build_terminal_launch_command(
             "powershell.exe".to_string(),
             "-NoExit".to_string(),
             "-Command".to_string(),
-            codex_command,
+            command_line,
         ],
         PlatformKind::MacOS => vec![
             "osascript".to_string(),
             "-e".to_string(),
-            format!("tell application \"Terminal\" to do script \"{}\"", escape_for_applescript(&codex_command)),
+            format!("tell application \"Terminal\" to do script \"{}\"", escape_for_applescript(&command_line)),
             "-e".to_string(),
             "tell application \"Terminal\" to activate".to_string(),
         ],
-        PlatformKind::Other => vec![
-            "sh".to_string(),
-            "-lc".to_string(),
-            codex_command,
-        ],
+        PlatformKind::Other => vec!["sh".to_string(), "-lc".to_string(), command_line],
     };
 
     Ok(command)
 }
 
-fn build_codex_shell_command(env: &BTreeMap<String, String>, codex_args: &[String]) -> String {
+fn build_shell_command(env: &BTreeMap<String, String>, program: &str, args: &[String]) -> String {
     let mut parts = Vec::new();
     match platform::detect_platform() {
         PlatformKind::Windows => {
             for (key, value) in env {
                 parts.push(format!("$env:{key} = '{}';", escape_for_single_quotes(value)));
             }
-            let arg_text = codex_args
+            let arg_text = args
                 .iter()
                 .map(|arg| format!("'{}'", escape_for_single_quotes(arg)))
                 .collect::<Vec<_>>()
                 .join(" ");
-            parts.push(format!("codex {arg_text}"));
+            parts.push(format!("& '{}' {arg_text}", escape_for_single_quotes(program)));
         }
         _ => {
             for (key, value) in env {
                 parts.push(format!("export {key}='{}';", escape_for_single_quotes(value)));
             }
-            let arg_text = codex_args
+            let arg_text = args
                 .iter()
                 .map(|arg| format!("'{}'", escape_for_single_quotes(arg)))
                 .collect::<Vec<_>>()
                 .join(" ");
-            parts.push(format!("codex {arg_text}"));
+            parts.push(format!("'{}' {arg_text}", escape_for_single_quotes(program)));
         }
     }
 
@@ -168,8 +202,8 @@ fn spawn_codex(command: &[String], env: &BTreeMap<String, String>) -> LauncherRe
     Ok(())
 }
 
-pub fn save_and_launch(request: LaunchRequest) -> LauncherResult<LaunchResponse> {
-    let (command, env, paths, resolved_launch_mode, launch_target) = build_launch_plan(&request)?;
+pub fn save_and_launch(app: Option<&tauri::AppHandle>, request: LaunchRequest) -> LauncherResult<LaunchResponse> {
+    let (command, env, paths, resolved_launch_mode, launch_target) = build_launch_plan(app, &request)?;
 
     settings::write_codex_config(&paths.config_path, request.openai_base_url.as_deref())?;
     auth::write_minimal_auth(&paths.auth_path, None, Some(&request.openai_api_key))?;
@@ -234,7 +268,7 @@ mod tests {
         };
 
         let (command, env, paths, resolved_launch_mode, launch_target) =
-            build_launch_plan(&request).expect("launch plan should build");
+            build_launch_plan(None, &request).expect("launch plan should build");
 
         assert!(!command.is_empty());
         assert!(command.join(" ").contains("OPENAI_API_KEY"));
@@ -248,7 +282,7 @@ mod tests {
             Some(paths.codex_home.to_string_lossy().as_ref())
         );
         assert_eq!(resolved_launch_mode, "cli_only");
-        assert_eq!(launch_target, "cli");
+        assert!(launch_target == "cli" || launch_target == "bundled_cli");
     }
 
     #[test]
@@ -263,7 +297,7 @@ mod tests {
             launch_now: false,
         };
 
-        let result = build_launch_plan(&request);
+        let result = build_launch_plan(None, &request);
         if cfg!(target_os = "windows") || cfg!(target_os = "macos") {
             if result.is_err() {
                 assert!(result

@@ -4,6 +4,7 @@ use crate::{
     error::LauncherResult,
     installer,
     models::{EnvironmentReport, PlatformKind},
+    offline,
 };
 
 pub const DESKTOP_INSTALL_URL: &str = "https://openai.com/codex/get-started/";
@@ -154,10 +155,11 @@ pub fn is_wsl_available() -> bool {
     probe_wsl_available()
 }
 
-pub fn detect_environment() -> LauncherResult<EnvironmentReport> {
+pub fn detect_environment(app: Option<&tauri::AppHandle>) -> LauncherResult<EnvironmentReport> {
     let codex_version = installer::probe_codex_version()?;
     let codex_installed = codex_version.is_some();
     let desktop_app = probe_desktop_app()?;
+    let offline_cli = offline::resolve_offline_cli(app)?;
     let platform = detect_platform();
     let wsl_available = probe_wsl_available();
     let mut details = Vec::new();
@@ -171,6 +173,11 @@ pub fn detect_environment() -> LauncherResult<EnvironmentReport> {
         "检测到现有 Codex CLI。".to_string()
     } else {
         "尚未检测到 Codex CLI，可尝试安装或修复。".to_string()
+    });
+    details.push(if offline_cli.available {
+        "已检测到内置离线 CLI 运行时，不依赖商店即可回退使用。".to_string()
+    } else {
+        "未检测到内置离线 CLI 运行时。".to_string()
     });
     if matches!(platform, PlatformKind::Windows) {
         details.push(if wsl_available {
@@ -193,6 +200,8 @@ pub fn detect_environment() -> LauncherResult<EnvironmentReport> {
         codex_version,
         desktop_app_installed: desktop_app.installed,
         desktop_app_path: desktop_app.app_path.map(|path| path.to_string_lossy().to_string()),
+        offline_cli_bundled: offline_cli.available,
+        offline_cli_path: offline_cli.runtime_dir.map(|path| path.to_string_lossy().to_string()),
         wsl_check_command: build_wsl_check_command(),
         wsl_available,
         macos_terminal_command_example: build_macos_terminal_command("codex --version"),

@@ -5,6 +5,7 @@ pub mod installer;
 pub mod launcher;
 pub mod logging;
 pub mod models;
+pub mod offline;
 pub mod platform;
 pub mod profile;
 pub mod repair;

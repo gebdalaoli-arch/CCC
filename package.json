@@ -13,6 +13,9 @@
     "tauri:build:windows": "tauri build -b nsis --ci --no-sign",
     "tauri:build:macos": "tauri build --target aarch64-apple-darwin --target x86_64-apple-darwin --ci --no-sign"
   },
+  "config": {
+    "offlineCodexVersion": "0.117.0"
+  },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
     "react": "^18.3.1",

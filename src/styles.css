@@ -78,6 +78,7 @@ button:disabled {
 .status-line {
   margin-top: 12px;
   color: #4b5563;
+  white-space: pre-wrap;
 }
 
 ul {
